@@ -1,0 +1,9 @@
+<THESEUS>	<3%>
+	What say you, Hermia? be advis'd, fair maid.
+	To you, your father should be as a god;
+	One that compos'd your beauties, yea, and one
+	To whom you are but as a form in wax
+	By him imprinted, and within his power
+	To leave the figure or disfigure it.
+	Demetrius is a worthy gentleman.
+</THESEUS>
