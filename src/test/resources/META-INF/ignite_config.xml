@@ -7,75 +7,9 @@
         http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
-        <property name="cacheConfiguration">
-            <list>
-                <bean class="org.apache.ignite.configuration.CacheConfiguration">
-                    <!-- Set a cache name. -->
-                    <property name="name" value="longestPhrases"/>
-                    <!-- Set a cache mode. -->
-                    <property name="cacheMode" value="PARTITIONED"/>
-                    <!-- Index Integer pairs used in the example. -->
-                    <property name="indexedTypes">
-                        <list>
-                            <value>java.lang.String</value>
-                            <value>java.lang.Integer</value>
-                        </list>
-                    </property>
-                    <!-- Set atomicity mode. -->
-                    <property name="atomicityMode" value="ATOMIC"/>
-                    <!-- Configure a number of backups. -->
-                    <property name="backups" value="1"/>
-                </bean>
-
-                <bean class="org.apache.ignite.configuration.CacheConfiguration">
-                    <!-- Set a cache name. -->
-                    <property name="name" value="longestWords"/>
-                    <!-- Set a cache mode. -->
-                    <property name="cacheMode" value="PARTITIONED"/>
-                    <!-- Index Integer pairs used in the example. -->
-                    <property name="indexedTypes">
-                        <list>
-                            <value>java.lang.String</value>
-                            <value>java.lang.Integer</value>
-                        </list>
-                    </property>
-                    <!-- Set atomicity mode. -->
-                    <property name="atomicityMode" value="ATOMIC"/>
-                    <!-- Configure a number of backups. -->
-                    <property name="backups" value="1"/>
-                </bean>
-
-                <bean class="org.apache.ignite.configuration.CacheConfiguration">
-                    <!-- Set a cache name. -->
-                    <property name="name" value="commonWords"/>
-                    <!-- Set a cache mode. -->
-                    <property name="cacheMode" value="PARTITIONED"/>
-                    <!-- Index Integer pairs used in the example. -->
-                    <property name="indexedTypes">
-                        <list>
-                            <value>java.lang.String</value>
-                            <value>java.lang.Integer</value>
-                        </list>
-                    </property>
-                    <!-- Set atomicity mode. -->
-                    <property name="atomicityMode" value="ATOMIC"/>
-                    <!-- Configure a number of backups. -->
-                    <property name="backups" value="1"/>
-                </bean>
-            </list>
-        </property>
-
-        <!-- Explicitly configure TCP discovery SPI to provide list of initial nodes. -->
         <property name="discoverySpi">
             <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
                 <property name="ipFinder">
-                    <!--
-                        Ignite provides several options for automatic discovery that can be used
-                        instead os static IP based discovery. For information on all options refer
-                        to our documentation: http://apacheignite.readme.io/docs/cluster-config
-                    -->
-                    <!-- Uncomment static IP finder to enable static-based discovery of initial nodes. -->
-                    <!--<bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">-->
                     <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.multicast.TcpDiscoveryMulticastIpFinder">
                         <property name="addresses">
                             <list>

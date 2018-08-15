@@ -1,7 +1,7 @@
 package es.alvsanand.word_count_tech_challenge
 
 import es.alvsanand.word_count_tech_challenge.test.SparkTestTrait
-import org.apache.ignite.spark.IgniteContext
+import org.apache.ignite.spark.{IgniteContext, IgniteDataFrameSettings}
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.Milliseconds
@@ -22,7 +22,7 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
     scenario("Simple") {
       withKafka(fun = (producer, consumer) => {
         withSpark((sparkSession: SparkSession) => {
-          withIgnite (sparkSession)((igniteContext: IgniteContext) => {
+          withIgnite (List("PhraseSize", "WordSize", "WordCount"), sparkSession)((igniteContext: IgniteContext) => {
             Given("Config")
             val args = WordCountStreamingJobArguments(TOPIC, BATCH_DURATION)
             val lines = Array(
@@ -63,10 +63,6 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
               "</EGEUS>"
             )
 
-            igniteContext.ignite().cache[String, Long]("longestPhrases").clear
-            igniteContext.ignite().cache[String, Integer]("longestWords").clear
-            igniteContext.ignite().cache[String, Long]("commonWords").clear
-
             When("Running job")
             val result = WordCountStreamingJob.run(args)
 
@@ -84,7 +80,16 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
             result.get.stop(false)
             Thread.sleep(5000L)
 
-            igniteContext.fromCache[String, Integer]("longestPhrases").sortBy(_._2, false).take(TOP_SIZE) should contain theSameElementsAs (Array[(String, Integer)](
+            import sparkSession.implicits._
+
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "PhraseSize")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Size".desc)
+              .take(TOP_SIZE)
+              .map(r => (r.getAs[String]("PHRASE") -> r.getAs[Int]("SIZE"))) should contain theSameElementsAs (Array[(String, Integer)](
               "With bracelets of thy hair, rings, gawds, conceits," -> 51,
               "With cunning hast thou filch'd my daughter's heart;" -> 51,
               "Knacks, trifles, nosegays, sweetmeats, messengers" -> 49,
@@ -92,8 +97,23 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
               "This man hath bewitch'd the bosom of my child:" -> 46
             ))
 
-            igniteContext.fromCache[String, Integer]("longestWords").sortBy(_._2, false).take(TOP_SIZE).map(_._1) should contain theSameElementsAs (Array[(String)]("interchang'd", "love-tokens", "prevailment", "immediately", "impression"))
-            igniteContext.fromCache[String, Integer]("commonWords").sortBy(_._2, false).take(TOP_SIZE) should contain theSameElementsAs (Array[(String, Int)]("to" -> 10, "my" -> 9, "of" -> 8, "her" -> 7, "with" -> 6))
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "WordSize")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Size".desc, $"Word".asc)
+              .take(TOP_SIZE)
+              .map(_.getAs[String]("WORD")) should contain theSameElementsAs (Array[(String)]("interchang'd", "immediately", "love-tokens", "prevailment", "daughter's"))
+
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "WordCount")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Count".desc, $"Word".asc)
+              .take(TOP_SIZE)
+              .map(r=> (r.getAs[String]("WORD")->r.getAs[Int]("COUNT"))) should contain theSameElementsAs (Array[(String, Int)]("to" -> 10, "my" -> 9, "of" -> 8, "her" -> 7, "and" -> 6))
           })
         })
       })
@@ -101,7 +121,7 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
     scenario("Multiple Batches") {
       withKafka(fun = (producer, consumer) => {
         withSpark((sparkSession: SparkSession) => {
-          withIgnite (sparkSession)((igniteContext: IgniteContext) => {
+          withIgnite (List("PhraseSize", "WordSize", "WordCount"), sparkSession)((igniteContext: IgniteContext) => {
             Given("Config")
             val args = WordCountStreamingJobArguments(TOPIC, BATCH_DURATION)
             val lines = Array(
@@ -142,10 +162,6 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
               "</EGEUS>"
             )
 
-            igniteContext.ignite().cache[String, Long]("longestPhrases").clear
-            igniteContext.ignite().cache[String, Integer]("longestWords").clear
-            igniteContext.ignite().cache[String, Long]("commonWords").clear
-
             When("Running job")
             val result = WordCountStreamingJob.run(args)
 
@@ -169,7 +185,16 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
             result.get.stop(false)
             Thread.sleep(5000L)
 
-            igniteContext.fromCache[String, Integer]("longestPhrases").sortBy(_._2, false).take(TOP_SIZE) should contain theSameElementsAs (Array[(String, Integer)](
+            import sparkSession.implicits._
+
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "PhraseSize")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Size".desc)
+              .take(TOP_SIZE)
+              .map(r => (r.getAs[String]("PHRASE") -> r.getAs[Int]("SIZE"))) should contain theSameElementsAs (Array[(String, Integer)](
               "With bracelets of thy hair, rings, gawds, conceits," -> 51,
               "With cunning hast thou filch'd my daughter's heart;" -> 51,
               "Knacks, trifles, nosegays, sweetmeats, messengers" -> 49,
@@ -177,9 +202,23 @@ class WordCountStreamingJobStreamingTestIT extends SparkTestTrait {
               "This man hath bewitch'd the bosom of my child:" -> 46
             ))
 
-            val tmp = igniteContext.fromCache[String, Integer]("longestWords").sortBy(_._2, false).take(TOP_SIZE).map(_._1)
-            tmp should contain theSameElementsAs (Array[(String)]("interchang'd", "love-tokens", "prevailment", "immediately", "impression"))
-            igniteContext.fromCache[String, Integer]("commonWords").sortBy(_._2, false).take(TOP_SIZE) should contain theSameElementsAs (Array[(String, Int)]("to" -> 20, "my" -> 18, "of" -> 16, "her" -> 14, "with" -> 12))
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "WordSize")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Size".desc, $"Word".asc)
+              .take(TOP_SIZE)
+              .map(_.getAs[String]("WORD")) should contain theSameElementsAs (Array[(String)]("interchang'd", "immediately", "love-tokens", "prevailment", "daughter's"))
+
+            sparkSession.read
+              .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+              .option(IgniteDataFrameSettings.OPTION_TABLE, "WordCount")
+              .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+              .load()
+              .sort($"Count".desc, $"Word".asc)
+              .take(TOP_SIZE)
+              .map(r=> (r.getAs[String]("WORD")->r.getAs[Int]("COUNT"))) should contain theSameElementsAs (Array[(String, Int)]("to" -> 20, "my" -> 18, "of" -> 16, "her" -> 14, "and" -> 12))
           })
         })
       })

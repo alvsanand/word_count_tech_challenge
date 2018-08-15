@@ -1,6 +1,7 @@
 package es.alvsanand.word_count_tech_challenge
 
 import es.alvsanand.word_count_tech_challenge.test.SparkTestTrait
+import org.apache.ignite.spark.{IgniteContext, IgniteDataFrameSettings}
 import org.apache.spark.sql.SparkSession
 import org.junit.runner.RunWith
 
@@ -17,28 +18,55 @@ class WordCountJobTestIT extends SparkTestTrait {
   feature("WordCountJobTestIT") {
     scenario("Simple") {
       withSpark((sparkSession: SparkSession) => {
-        Given("Config")
-        val args = WordCountJobArguments(FILE_PATH, TOP_SIZE)
+        withIgnite (List("PhraseSize", "WordSize", "WordCount"), sparkSession)((igniteContext: IgniteContext) => {
+          Given("Config")
+          val args = WordCountJobArguments(FILE_PATH, TOP_SIZE)
 
-        When("Running job")
-        val result = WordCountJob.run(args)
+          When("Running job")
+          val result = WordCountJob.run(args)
 
-        Then("Match expected values")
-        result.isSuccess should be(true)
+          Then("Match expected values")
+          result.isSuccess should be(true)
 
-        result.get._1.longestPhrases should contain theSameElementsAs (Array[(String, Int)](
-          "With bracelets of thy hair, rings, gawds, conceits," -> 51,
-          "With cunning hast thou filch'd my daughter's heart;" -> 51,
-          "Knacks, trifles, nosegays, sweetmeats, messengers" -> 49,
-          "Thou, thou, Lysander, thou hast given her rimes," -> 48,
-          "This man hath bewitch'd the bosom of my child:" -> 46
-        ))
-        result.get._1.longestWords should contain theSameElementsAs (Array[String]("interchang'd", "love-tokens", "prevailment", "immediately", "impression"))
-        result.get._1.commonWords should contain theSameElementsAs (Array[(String, Int)]("to" -> 10, "my" -> 9, "of" -> 8, "her" -> 7, "with" -> 6))
+          import sparkSession.implicits._
 
-        result.get._2.filesProcessed should be (2L)
-        result.get._2.processedLines should be (31L)
-        result.get._2.wordCount should be (226L)
+          sparkSession.read
+            .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+            .option(IgniteDataFrameSettings.OPTION_TABLE, "PhraseSize")
+            .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+            .load()
+            .sort($"Size".desc)
+            .take(TOP_SIZE)
+            .map(r => (r.getAs[String]("PHRASE") -> r.getAs[Int]("SIZE"))) should contain theSameElementsAs (Array[(String, Integer)](
+            "With bracelets of thy hair, rings, gawds, conceits," -> 51,
+            "With cunning hast thou filch'd my daughter's heart;" -> 51,
+            "Knacks, trifles, nosegays, sweetmeats, messengers" -> 49,
+            "Thou, thou, Lysander, thou hast given her rimes," -> 48,
+            "This man hath bewitch'd the bosom of my child:" -> 46
+          ))
+
+          sparkSession.read
+            .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+            .option(IgniteDataFrameSettings.OPTION_TABLE, "WordSize")
+            .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+            .load()
+            .sort($"Size".desc, $"Word".asc)
+            .take(TOP_SIZE)
+            .map(_.getAs[String]("WORD")) should contain theSameElementsAs (Array[(String)]("interchang'd", "immediately", "love-tokens", "prevailment", "daughter's"))
+
+          sparkSession.read
+            .format(IgniteDataFrameSettings.FORMAT_IGNITE)
+            .option(IgniteDataFrameSettings.OPTION_TABLE, "WordCount")
+            .option(IgniteDataFrameSettings.OPTION_CONFIG_FILE, igniteConfigFile)
+            .load()
+            .sort($"Count".desc, $"Word".asc)
+            .take(TOP_SIZE)
+            .map(r=> (r.getAs[String]("WORD")->r.getAs[Int]("COUNT"))) should contain theSameElementsAs (Array[(String, Int)]("to" -> 10, "my" -> 9, "of" -> 8, "her" -> 7, "and" -> 6))
+
+          result.get.filesProcessed should be (2L)
+          result.get.processedLines should be (31L)
+          result.get.wordCount should be (226L)
+        })
       })
     }
   }

@@ -45,7 +45,7 @@ class WordCountJobTest extends SparkTestTrait {
 
         Then("Match expected values")
 
-        result.collect should contain theSameElementsInOrderAs (filteredLines)
+        result.collect should contain theSameElementsAs (filteredLines)
       })
     }
     scenario("getWords") {
@@ -64,7 +64,7 @@ class WordCountJobTest extends SparkTestTrait {
 
         Then("Match expected values")
 
-        result.collect should contain theSameElementsInOrderAs (words)
+        result.collect should contain theSameElementsAs (words)
       })
     }
     scenario("getPhraseSizesRDD") {
@@ -87,7 +87,7 @@ class WordCountJobTest extends SparkTestTrait {
 
         Then("Match expected values")
 
-        result.collect should contain theSameElementsInOrderAs (sizes)
+        result.collect should contain theSameElementsAs (sizes)
       })
     }
     scenario("getLongestWordsRDD") {
@@ -96,8 +96,10 @@ class WordCountJobTest extends SparkTestTrait {
         val lines = Array(
           "Now, fair Hippolyta, our nuptial hour",
           "Draws on apace: four happy days bring in"
-        ).flatMap(StringUtils.getWords(_)).map(_.toLowerCase)
+        ).flatMap(StringUtils.getWords(_))
+          .map(_.toLowerCase)
         val words = Array("hippolyta", "nuptial", "bring", "apace", "happy", "draws", "hour", "fair", "four", "days", "our", "now", "on", "in")
+          .map(w => w.toLowerCase -> w.length)
 
         val rdd = sparkSession.sparkContext.parallelize(lines)
 
@@ -106,7 +108,7 @@ class WordCountJobTest extends SparkTestTrait {
 
         Then("Match expected values")
 
-        result.collect should contain theSameElementsInOrderAs (words)
+        result.collect should contain theSameElementsAs (words)
       })
     }
     scenario("getWordsCountRDD") {
@@ -126,7 +128,7 @@ class WordCountJobTest extends SparkTestTrait {
 
         Then("Match expected values")
 
-        result.collect should contain theSameElementsInOrderAs (words)
+        result.collect should contain theSameElementsAs (words)
       })
     }
   }

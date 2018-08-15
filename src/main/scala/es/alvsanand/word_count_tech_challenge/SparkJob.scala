@@ -1,6 +1,7 @@
 package es.alvsanand.word_count_tech_challenge
 
 import es.alvsanand.word_count_tech_challenge.utils.{Config, Logging}
+import org.apache.ignite.spark.IgniteContext
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.Deserializer
 import org.apache.spark.SparkConf
@@ -22,6 +23,8 @@ trait SparkJobArguments {
 }
 
 trait SparkJob[A <: SparkJobArguments, B] extends Logging{
+
+  protected val igniteConfigFile = "ignite_config.xml"
 
   protected def getName(): String = {
     val fullName = this.getClass.getSimpleName
@@ -79,6 +82,8 @@ trait SparkJob[A <: SparkJobArguments, B] extends Logging{
       subscribe
     )
   }
+
+  protected def getIgniteContext(sparkSession: SparkSession) = new IgniteContext(sparkSession.sparkContext, igniteConfigFile)
 }
 
 object SparkJob {

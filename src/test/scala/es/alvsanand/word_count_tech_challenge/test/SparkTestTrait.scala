@@ -12,6 +12,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalactic.source
 import org.scalatest._
+import scala.collection.JavaConverters._
 
 import scala.util.Try
 
@@ -78,8 +79,12 @@ trait SparkTestTrait extends FeatureSpec with Matchers with BeforeAndAfter with 
     if(result.isFailure) throw result.failed.get
   }
 
-  protected def withIgnite(sparkSession: SparkSession)(fun: (IgniteContext) => Any) = {
-    val igniteContext = new IgniteContext(sparkSession.sparkContext, "ignite_config.xml")
+  protected val igniteConfigFile = "ignite_config.xml"
+
+  protected def withIgnite(cacheNames: List[String], sparkSession: SparkSession)(fun: (IgniteContext) => Any) = {
+    val igniteContext = new IgniteContext(sparkSession.sparkContext, igniteConfigFile)
+
+    igniteContext.ignite().destroyCaches(cacheNames.asJava)
 
     val result = Try({fun(igniteContext)})
 

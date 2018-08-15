@@ -62,8 +62,16 @@ The solutions implemented for the batch job is the following one:
 - Split the paragraphs into lowercase words. This RDD is cached to improve performance.
 - Create an RDD with the length of all distinct words.
 - Create an RDD with the count of the words using a simple map/reduceByKey operation.
-- Sort all RDDs and take the X bigger values.
-- Print results to the console.
+- Store values to Ignite.
+- Print to console text statistics
+
+In order to obtain results, Apache Ignite must be queried:
+
+``` sql
+SELECT PHRASE, SIZE FROM PHRASESIZE ORDER BY SIZE DESC, PHRASE ASC LIMIT 5;
+SELECT WORD, SIZE FROM WORDSIZE ORDER BY SIZE DESC, WORD ASC LIMIT 5;
+SELECT WORD, COUNT FROM WORDCOUNT ORDER BY COUNT DESC, WORD ASC LIMIT 5;
+```
 
 > Caching is used and it can be configured. If the dataset is extremely big, the caching would have to be disabled. 
 
@@ -82,9 +90,9 @@ For each batch:
 In order to obtain results, Apache Ignite must be queried:
 
 ``` sql
-select * from "longestPhrases".INTEGER order by _VAL DESC limit 5;
-select * from "longestWords".INTEGER order by _VAL DESC limit 5;
-select * from "commonWords".INTEGER order by _VAL DESC limit 5;
+SELECT PHRASE, SIZE FROM PHRASESIZE ORDER BY SIZE DESC, PHRASE ASC LIMIT 5;
+SELECT WORD, SIZE FROM WORDSIZE ORDER BY SIZE DESC, WORD ASC LIMIT 5;
+SELECT WORD, COUNT FROM WORDCOUNT ORDER BY COUNT DESC, WORD ASC LIMIT 5;
 ```
 
 > Caching is not used in the streaming solution because the batch size are usually small.
@@ -131,6 +139,18 @@ mvn pre-integration-test -DskipTests
 # Launch Job
 FILES=$(pwd)/src/test/resources/test_files
 java -cp target/word_count_tech_challenge-1.0-SNAPSHOT-jar-with-dependencies.jar es.alvsanand.word_count_tech_challenge.WordCountJobMain --filesPath "$FILES/*" | grep WordCountJobMain
+
+
+# Check results in Ignite using SQL
+docker exec -it $(docker ps -aqf "name=ignite") bash
+
+apache-ignite-fabric/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1/
+
+SELECT PHRASE, SIZE FROM PHRASESIZE ORDER BY SIZE DESC, PHRASE ASC LIMIT 5;
+SELECT WORD, SIZE FROM WORDSIZE ORDER BY SIZE DESC, WORD ASC LIMIT 5;
+SELECT WORD, COUNT FROM WORDCOUNT ORDER BY COUNT DESC, WORD ASC LIMIT 5;
+
+exit
 ```
 
 ### Running the Streaming Job
@@ -196,9 +216,9 @@ docker exec -it $(docker ps -aqf "name=ignite") bash
 
 apache-ignite-fabric/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1/
 
-select * from "longestPhrases".INTEGER order by _VAL DESC limit 5;
-select * from "longestWords".INTEGER order by _VAL DESC limit 5;
-select * from "commonWords".INTEGER order by _VAL DESC limit 5;
+SELECT PHRASE, SIZE FROM PHRASESIZE ORDER BY SIZE DESC, PHRASE ASC LIMIT 5;
+SELECT WORD, SIZE FROM WORDSIZE ORDER BY SIZE DESC, WORD ASC LIMIT 5;
+SELECT WORD, COUNT FROM WORDCOUNT ORDER BY COUNT DESC, WORD ASC LIMIT 5;
 
 exit
 ```

@@ -55,17 +55,7 @@ object WordCountJobMain extends Logging{
       if(result.isSuccess){
         val top = result.get
 
-        logInfo(s"Top $topSize longest phrases")
-        top._1.longestPhrases.foreach{ case (p: String, s: Int) => s"$p: $s characters" }
-
-        logInfo(s"Top $topSize longest words")
-        top._1.longestWords.foreach{ case (w: String) => s"$w: ${w.length} characters" }
-
-        logInfo(s"Top $topSize common words")
-        top._1.commonWords.foreach{ case (w: String, t:Int) => s"$w: $t times" }
-
-        logInfo(s"Text stats: filesProcessed=${top._2.filesProcessed} and processedLines=${top._2.processedLines}")
-        top._1.commonWords.foreach{ case (w: String, t:Int) => s"$w: $t times" }
+        logInfo(s"Text stats: filesProcessed=${top.filesProcessed}, processedLines=${top.processedLines} and wordCount=${top.wordCount}")
 
         logInfo("End WordCountJobMain")
       }
